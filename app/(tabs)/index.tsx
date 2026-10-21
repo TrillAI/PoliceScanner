@@ -15,7 +15,7 @@ import { Colors, FontSize, Spacing, Radius } from '../../constants/theme';
 export default function ScannerScreen() {
   const insets = useSafeAreaInsets();
   const geo = useGeolocation();
-  const { selectedFeed, streamStatus, selectFeed, startStream, stopStream, setUserLocation } = useScanner();
+  const { selectedFeed, streamStatus, transcriptionMode, selectFeed, startStream, stopStream, setUserLocation } = useScanner();
   const [feeds, setFeeds] = useState<FeedWithDistance[]>([]);
 
   useEffect(() => {
@@ -79,9 +79,17 @@ export default function ScannerScreen() {
               <Text style={styles.nowPlayingName} numberOfLines={1}>{selectedFeed.name}</Text>
               <Text style={styles.nowPlayingAgency}>{selectedFeed.agency} · {selectedFeed.city}</Text>
               {isError ? (
-                <Text style={styles.demoNote}>⚡ Demo mode — live stream needs Broadcastify auth</Text>
+                <Text style={styles.demoNote}>
+                  {transcriptionMode === 'live'
+                    ? '⚡ Audio unavailable — server transcription running'
+                    : '⚡ Demo mode — live stream needs Broadcastify auth'}
+                </Text>
               ) : isPlaying ? (
-                <Text style={styles.demoNote}>🎙 Monitoring chatter (demo transcription)</Text>
+                <Text style={styles.demoNote}>
+                  {transcriptionMode === 'live'
+                    ? '🎙 Live transcription from radio server'
+                    : '🎙 Monitoring chatter (demo transcription)'}
+                </Text>
               ) : null}
             </View>
           </View>
