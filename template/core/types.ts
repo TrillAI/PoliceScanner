@@ -6,7 +6,7 @@ export interface SupabaseConfig {
 }
 
 // Auth module configuration
-export interface CoreAuthConfig {
+export interface AuthConfig {
   enabled?: boolean;
   profileTableName?: string;
   autoCreateProfile?: boolean;
@@ -25,7 +25,7 @@ export interface StorageConfig {
 
 // Module configuration union type
 export interface ModuleConfig {
-  auth?: CoreAuthConfig | false;
+  auth?: AuthConfig | false;
   payments?: PaymentsConfig | false;
   storage?: StorageConfig | false;
 }

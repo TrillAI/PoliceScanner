@@ -20,7 +20,7 @@ const FILTERS: { label: string; value: LogFilter; icon: string }[] = [
 
 export default function LogsScreen() {
   const insets = useSafeAreaInsets();
-  const { logEntries, clearLogs, transcriptionMode } = useScanner();
+  const { logEntries, clearLogs } = useScanner();
   const [filter, setFilter] = useState<LogFilter>('all');
 
   const filtered =
@@ -65,9 +65,7 @@ export default function LogsScreen() {
       <View style={styles.infoBanner}>
         <MaterialIcons name="info-outline" size={14} color={Colors.info} />
         <Text style={styles.infoText}>
-          {transcriptionMode === 'live'
-            ? 'Live transcription from the radio server. Transmissions appear a few seconds after they end.'
-            : 'Transcription runs in demo mode. Set EXPO_PUBLIC_TRANSCRIBER_URL to use live transcription.'}
+          Transcription runs in demo mode. Real-time transcription requires a backend speech-to-text service.
         </Text>
       </View>
 
