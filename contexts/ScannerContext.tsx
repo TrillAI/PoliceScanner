@@ -7,15 +7,22 @@ import React, {
   ReactNode,
 } from 'react';
 import { Audio } from 'expo-av';
-import { CrimeAlert, Feed, LogEntry, StreamStatus } from '../constants/types';
+import { CrimeAlert, Feed, LogEntry, MapMarker, StreamStatus } from '../constants/types';
 import { checkTranscriptForAlerts, getRandomDemoPhrase } from '../services/keywordService';
 import { sendCrimeAlertNotification } from '../services/notificationService';
 import { fetchTranscripts, isLiveTranscriptionConfigured } from '../services/transcriberClient';
+import { extractLocationCandidates } from '../services/locationExtractor';
+import { geocodePlace } from '../services/geocodeService';
 
 // How often the app asks the transcriber for new transmissions, and the
 // upper bound on retry delay while the transcriber is unreachable.
 const LIVE_POLL_INTERVAL_MS = 2000;
 const LIVE_MAX_BACKOFF_MS = 30000;
+
+// The same place from the same feed is only marked once per window, so a
+// unit repeating "Main and First" does not stack pins on the map.
+const MARKER_DEDUPE_MS = 15 * 60 * 1000;
+const MAX_MAP_MARKERS = 200;
 
 export type TranscriptionMode = 'off' | 'live' | 'demo';
 
@@ -25,6 +32,7 @@ interface ScannerContextType {
   transcriptionMode: TranscriptionMode;
   crimeAlerts: CrimeAlert[];
   logEntries: LogEntry[];
+  mapMarkers: MapMarker[];
   unreadCount: number;
   userLatitude: number;
   userLongitude: number;
@@ -36,6 +44,7 @@ interface ScannerContextType {
   markAllRead: () => void;
   clearAlerts: () => void;
   clearLogs: () => void;
+  clearMarkers: () => void;
 }
 
 export const ScannerContext = createContext<ScannerContextType | undefined>(undefined);
@@ -46,6 +55,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   const [transcriptionMode, setTranscriptionMode] = useState<TranscriptionMode>('off');
   const [crimeAlerts, setCrimeAlerts] = useState<CrimeAlert[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
   const [userLatitude, setUserLatitude] = useState(37.7749);
   const [userLongitude, setUserLongitude] = useState(-122.4194);
 
@@ -54,6 +64,8 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   const stopLiveRef = useRef<(() => void) | null>(null);
   // Read by the transcription loops so they never act on stale coordinates.
   const locationRef = useRef({ lat: 37.7749, lon: -122.4194 });
+  // Place key ("feedId|place") -> time it was last marked.
+  const recentPlacesRef = useRef(new Map<string, number>());
 
   useEffect(() => {
     locationRef.current = { lat: userLatitude, lon: userLongitude };
@@ -93,7 +105,48 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
     setSelectedFeed(feed);
   }, []);
 
-  // Shared by live and demo modes: log the transmission and raise any alert.
+  // Geocode any places named in a transmission and pin them on the map. The
+  // pin's title says why it was placed: the alert keyword, or a generic label.
+  const markPlaces = useCallback((feed: Feed, text: string, alert: CrimeAlert | null) => {
+    const now = Date.now();
+    const recent = recentPlacesRef.current;
+    if (recent.size > 500) {
+      for (const [key, t] of recent) {
+        if (now - t > MARKER_DEDUPE_MS) recent.delete(key);
+      }
+    }
+
+    for (const candidate of extractLocationCandidates(text)) {
+      const key = `${feed.id}|${candidate.query.toLowerCase()}`;
+      const last = recent.get(key);
+      if (last !== undefined && now - last < MARKER_DEDUPE_MS) continue;
+      recent.set(key, now);
+
+      const query = `${candidate.query}, ${feed.city}, ${feed.state}`;
+      void geocodePlace(query, { latitude: feed.latitude, longitude: feed.longitude }).then(
+        (coords) => {
+          if (!coords) return;
+          const marker: MapMarker = {
+            id: `marker-${now}-${Math.random().toString(36).slice(2, 8)}`,
+            feedId: feed.id,
+            feedName: feed.name,
+            agency: feed.agency,
+            label: candidate.label,
+            title: alert ? alert.matchedKeyword : 'Location mentioned',
+            severity: alert ? alert.severity : null,
+            description: text,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            timestamp: new Date().toISOString(),
+          };
+          setMapMarkers((prev) => [marker, ...prev].slice(0, MAX_MAP_MARKERS));
+        }
+      );
+    }
+  }, []);
+
+  // Shared by live and demo modes: log the transmission, raise any alert, and
+  // mark any locations it names.
   const handleTranscript = useCallback(
     (feed: Feed, text: string) => {
       addLog({
@@ -107,8 +160,9 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       if (alert) {
         void addAlert(alert);
       }
+      markPlaces(feed, text, alert);
     },
-    [addLog, addAlert]
+    [addLog, addAlert, markPlaces]
   );
 
   const startDemoTranscription = useCallback(
@@ -299,6 +353,10 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
 
   const clearAlerts = useCallback(() => setCrimeAlerts([]), []);
   const clearLogs = useCallback(() => setLogEntries([]), []);
+  const clearMarkers = useCallback(() => {
+    setMapMarkers([]);
+    recentPlacesRef.current.clear();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -317,6 +375,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
         transcriptionMode,
         crimeAlerts,
         logEntries,
+        mapMarkers,
         unreadCount,
         userLatitude,
         userLongitude,
@@ -328,6 +387,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
         markAllRead,
         clearAlerts,
         clearLogs,
+        clearMarkers,
       }}
     >
       {children}

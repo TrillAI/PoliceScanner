@@ -35,6 +35,19 @@ _RE_TEN_NUMBER = re.compile(rf"\b(?:ten|10)\s+({_NUMBER_WORDS})\b", _FLAGS)
 _RE_TEN_DIGITS = re.compile(r"\b10\s+([0-9]{1,2})\b", _FLAGS)
 _RE_SPACES = re.compile(r"\s+", _FLAGS)
 
+# Common recognizer mishearings of radio phrases. Each rule only fires where the
+# lookahead shows a radio context, so ordinary sentences are left alone.
+# Keep this table identical to RADIO_FIXES in services/transcriptNormalizer.ts.
+_RADIO_CONTEXT = r"(?=\s*$|\s+(?:copy|roger|dispatch|unit|units|en route|received|affirmative|over|we|you|that|all|respond|responding)\b)"
+_RE_TEN_FOR = re.compile(r"\b(?:ten|10)[ -]for\b" + _RADIO_CONTEXT, _FLAGS)
+_RE_CODE_TREE = re.compile(r"\bcode (?:tree|free)\b", _FLAGS)
+_RE_CODE_FOR = re.compile(
+    r"\bcode for\b(?=\s*$|\s+(?:at|on|en|scene|no|all|copy|is|we|traffic|respond|responding|clear|with)\b)",
+    _FLAGS,
+)
+_RE_SHOTS_FIRE = re.compile(r"\bshots?\s+fire(?:d)?\b", _FLAGS)
+_RE_IN_ROUTE = re.compile(r"\bin route\b", _FLAGS)
+
 
 def _spoken_to_digits(spoken: str) -> str:
     total = sum(_WORD_VALUES.get(word, 0) for word in re.split(r"[ -]", spoken))
@@ -50,4 +63,9 @@ def normalize_radio_transcript(raw: str) -> str:
     text = _RE_PREFIX_NUMBER.sub(lambda m: f"{m.group(1)} {_spoken_to_digits(m.group(2))}", text)
     text = _RE_TEN_NUMBER.sub(lambda m: f"10-{_spoken_to_digits(m.group(1))}", text)
     text = _RE_TEN_DIGITS.sub(r"10-\1", text)
+    text = _RE_TEN_FOR.sub("10-4", text)
+    text = _RE_CODE_TREE.sub("code 3", text)
+    text = _RE_CODE_FOR.sub("code 4", text)
+    text = _RE_SHOTS_FIRE.sub("shots fired", text)
+    text = _RE_IN_ROUTE.sub("en route", text)
     return _RE_SPACES.sub(" ", text).strip()

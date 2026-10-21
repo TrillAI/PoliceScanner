@@ -41,7 +41,7 @@ class SegmenterTests(unittest.TestCase):
                 out.append((max(0, s), min(len(buf), e)))
             return out
 
-        seg = UtteranceSegmenter(speech_spans=spans_fn, silence_ms=600, max_utterance_s=25, min_utterance_s=0.6)
+        seg = UtteranceSegmenter(speech_spans=spans_fn, silence_ms=600, max_utterance_s=25, min_utterance_s=0.3)
         holder["seg"] = seg
         return seg
 
@@ -64,6 +64,12 @@ class SegmenterTests(unittest.TestCase):
         out = run_stream(seg, total_s=6.0)
         self.assertEqual(len(out), 1)
         self.assertAlmostEqual(out[0].end_s, 3.5 + 0.2, places=2)
+
+    def test_short_radio_acknowledgement_is_kept(self):
+        # A "10-4" is about 0.4 s of speech. It must survive the minimum length.
+        seg = self._stub([(seconds(1.0), seconds(1.4))])
+        out = run_stream(seg, total_s=4.0)
+        self.assertEqual(len(out), 1)
 
     def test_noise_burst_shorter_than_minimum_is_dropped(self):
         seg = self._stub([(seconds(1.0), seconds(1.2))])

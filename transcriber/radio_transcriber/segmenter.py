@@ -45,7 +45,7 @@ class UtteranceSegmenter:
         speech_spans: SpeechSpans = silero_speech_spans,
         silence_ms: int = 600,
         max_utterance_s: float = 25.0,
-        min_utterance_s: float = 0.6,
+        min_utterance_s: float = 0.3,
     ):
         self._spans = speech_spans
         self._silence = int(SAMPLE_RATE * silence_ms / 1000)

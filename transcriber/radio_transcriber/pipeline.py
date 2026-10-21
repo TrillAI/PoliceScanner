@@ -122,7 +122,9 @@ class FeedWorker(threading.Thread):
         self.status.state = "stopped"
 
     def _run_once(self) -> None:
-        self._proc = audio.start_decoder(self._settings.ffmpeg_bin, self.feed.url)
+        self._proc = audio.start_decoder(
+            self._settings.ffmpeg_bin, self.feed.url, self._settings.radio_filter
+        )
         self.status.state = "streaming"
         segmenter = self._segmenter_factory()
         stream_started_wall = time.time()
@@ -146,8 +148,9 @@ class FeedWorker(threading.Thread):
             self._proc = None
 
     def _handle(self, utt, stream_started_wall: float) -> None:
+        pcm = audio.normalize_peak(utt.audio) if self._settings.peak_normalize else utt.audio
         with self._engine_lock:
-            hyp = self._engine.transcribe(utt.audio)
+            hyp = self._engine.transcribe(pcm)
         reason = judge(hyp, self._settings.filters)
         if reason is not None:
             self.status.dropped[reason] = self.status.dropped.get(reason, 0) + 1

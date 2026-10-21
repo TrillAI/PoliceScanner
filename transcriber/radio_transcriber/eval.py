@@ -18,12 +18,12 @@ import json
 import re
 import sys
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
-from .audio import decode_file
-from .config import _default_ffmpeg
+from .audio import DEFAULT_RADIO_FILTER, decode_file, normalize_peak
+from .config import DEFAULT_HOTWORDS, _default_ffmpeg
 from .filters import FilterSettings, judge
 from .normalize import normalize_radio_transcript
 from .segmenter import SAMPLE_RATE, UtteranceSegmenter
@@ -56,9 +56,19 @@ class ClipResult:
     dropped: List[str]
 
 
-def transcribe_clip(engine, ffmpeg_bin: str, path: str, filters: FilterSettings, silence_ms: int):
-    pcm = decode_file(ffmpeg_bin, path)
-    segmenter = UtteranceSegmenter(silence_ms=silence_ms)
+def transcribe_clip(
+    engine,
+    ffmpeg_bin: str,
+    path: str,
+    filters: FilterSettings,
+    silence_ms: int,
+    audio_filter: Optional[str] = None,
+    peak_normalize: bool = True,
+    min_utterance_s: float = 0.3,
+):
+    """Run one clip through the same steps as the live service."""
+    pcm = decode_file(ffmpeg_bin, path, audio_filter)
+    segmenter = UtteranceSegmenter(silence_ms=silence_ms, min_utterance_s=min_utterance_s)
     utterances = []
     step = SAMPLE_RATE // 2
     for pos in range(0, len(pcm), step):
@@ -67,7 +77,8 @@ def transcribe_clip(engine, ffmpeg_bin: str, path: str, filters: FilterSettings,
 
     kept, dropped = [], []
     for utt in utterances:
-        hyp = engine.transcribe(utt.audio)
+        audio_in = normalize_peak(utt.audio) if peak_normalize else utt.audio
+        hyp = engine.transcribe(audio_in)
         reason = judge(hyp, filters)
         if reason is None:
             kept.append(hyp.text.strip())
@@ -99,11 +110,21 @@ def main(argv=None) -> int:
     parser.add_argument("--model-dir", default=None)
     parser.add_argument("--hotwords", default=None)
     parser.add_argument("--silence-ms", type=int, default=600)
+    parser.add_argument("--min-utterance-s", type=float, default=0.3)
+    parser.add_argument(
+        "--audio-filter",
+        default=DEFAULT_RADIO_FILTER,
+        help="ffmpeg audio filter applied before decoding; 'off' disables (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--no-peak-normalize",
+        action="store_true",
+        help="skip per-transmission level normalization",
+    )
     parser.add_argument("--ffmpeg", default=None)
     parser.add_argument("--json", default=None, help="write per-clip results to this file")
     args = parser.parse_args(argv)
 
-    from .config import DEFAULT_HOTWORDS
     from .engine import FasterWhisperEngine
 
     engine = FasterWhisperEngine(
@@ -115,10 +136,20 @@ def main(argv=None) -> int:
     )
     ffmpeg_bin = args.ffmpeg or _default_ffmpeg()
     filters = FilterSettings()
+    audio_filter = None if args.audio_filter.strip().lower() in ("", "off", "none") else args.audio_filter
 
     results: List[ClipResult] = []
     for clip, reference in read_manifest(args.manifest):
-        hypothesis, dropped = transcribe_clip(engine, ffmpeg_bin, clip, filters, args.silence_ms)
+        hypothesis, dropped = transcribe_clip(
+            engine,
+            ffmpeg_bin,
+            clip,
+            filters,
+            args.silence_ms,
+            audio_filter=audio_filter,
+            peak_normalize=not args.no_peak_normalize,
+            min_utterance_s=args.min_utterance_s,
+        )
         ref_tokens = _normalize_for_scoring(reference)
         hyp_tokens = _normalize_for_scoring(hypothesis)
         errors = word_edit_distance(ref_tokens, hyp_tokens)

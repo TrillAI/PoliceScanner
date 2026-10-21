@@ -7,13 +7,18 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from urllib.parse import urlparse
 
+from .audio import DEFAULT_RADIO_FILTER
 from .filters import FilterSettings
 
 FEED_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
+# Biases decoding toward radio vocabulary: ten-codes, priority codes, and the
+# phrases that carry call type and status on a dispatch channel.
 DEFAULT_HOTWORDS = (
-    "10-4 10-8 10-20 10-23 10-31 10-33 10-99 code 2 code 3 code 4 "
-    "BOLO en route copy dispatch"
+    "10-4 10-8 10-9 10-20 10-23 10-31 10-33 10-97 10-98 10-99 "
+    "code 2 code 3 code 4 code 5 code 6 BOLO en route on scene clear copy "
+    "dispatch negative affirmative say again stand by shots fired officer "
+    "needs assistance in progress suspect armed"
 )
 
 
@@ -36,8 +41,12 @@ class Settings:
     cors_origins: List[str] = field(default_factory=lambda: ["*"])
     silence_ms: int = 600
     max_utterance_s: float = 25.0
-    min_utterance_s: float = 0.6
+    min_utterance_s: float = 0.3
     history_size: int = 500
+    # ffmpeg audio filter applied before decoding; None decodes the raw stream.
+    radio_filter: Optional[str] = DEFAULT_RADIO_FILTER
+    # Scale each transmission to a consistent level before transcription.
+    peak_normalize: bool = True
     filters: FilterSettings = FilterSettings()
 
 
@@ -98,7 +107,19 @@ def load_settings(env: Optional[dict] = None) -> Settings:
         cors_origins=cors,
         silence_ms=int(env.get("SILENCE_MS", "600")),
         max_utterance_s=float(env.get("MAX_UTTERANCE_S", "25")),
-        min_utterance_s=float(env.get("MIN_UTTERANCE_S", "0.6")),
+        min_utterance_s=float(env.get("MIN_UTTERANCE_S", "0.3")),
         history_size=int(env.get("HISTORY_SIZE", "500")),
+        radio_filter=_radio_filter(env),
+        peak_normalize=env.get("PEAK_NORMALIZE", "1").strip().lower() not in ("0", "false", "off", "no"),
         filters=filters,
     )
+
+
+def _radio_filter(env: dict) -> Optional[str]:
+    value = env.get("RADIO_AUDIO_FILTER")
+    if value is None:
+        return DEFAULT_RADIO_FILTER
+    value = value.strip()
+    if value.lower() in ("", "off", "none", "0", "false"):
+        return None
+    return value

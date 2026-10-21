@@ -60,8 +60,28 @@ export function normalizeRadioTranscript(raw: string): string {
   // Ten-codes spoken with digits and a space: "10 4" -> "10-4".
   text = text.replace(/\b10\s+(\d{1,2})\b/g, '10-$1');
 
+  for (const [pattern, replacement] of RADIO_FIXES) {
+    text = text.replace(pattern, replacement);
+  }
+
   return text.replace(/\s+/g, ' ').trim();
 }
+
+// Common recognizer mishearings of radio phrases. Each rule only fires where the
+// lookahead shows a radio context, so ordinary sentences are left alone.
+// Keep this table identical to the Python table in transcriber/radio_transcriber/normalize.py.
+const RADIO_CONTEXT =
+  '(?=\\s*$|\\s+(?:copy|roger|dispatch|unit|units|en route|received|affirmative|over|we|you|that|all|respond|responding)\\b)';
+const RADIO_FIXES: [RegExp, string][] = [
+  [new RegExp('\\b(?:ten|10)[ -]for\\b' + RADIO_CONTEXT, 'g'), '10-4'],
+  [/\bcode (?:tree|free)\b/g, 'code 3'],
+  [
+    /\bcode for\b(?=\s*$|\s+(?:at|on|en|scene|no|all|copy|is|we|traffic|respond|responding|clear|with)\b)/g,
+    'code 4',
+  ],
+  [/\bshots?\s+fire(?:d)?\b/g, 'shots fired'],
+  [/\bin route\b/g, 'en route'],
+];
 
 // Phrases that mean the reported situation has ended. A keyword that appears
 // alongside one of these is still logged, but its severity is capped at LOW.

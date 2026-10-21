@@ -1,0 +1,126 @@
+[
+  {
+    "raw": "Ten-Four, Unit 4.",
+    "normalized": "10-4 unit 4"
+  },
+  {
+    "raw": "hit-and-run",
+    "normalized": "hit and run"
+  },
+  {
+    "raw": "code-3",
+    "normalized": "code 3"
+  },
+  {
+    "raw": "I-95 northbound",
+    "normalized": "i-95 northbound"
+  },
+  {
+    "raw": "Two Eleven at Main",
+    "normalized": "211 at main"
+  },
+  {
+    "raw": "ten ninety-nine",
+    "normalized": "10-99"
+  },
+  {
+    "raw": "unit forty two",
+    "normalized": "unit 42"
+  },
+  {
+    "raw": "Unit 4, copy, 10-4",
+    "normalized": "unit 4 copy 10-4"
+  },
+  {
+    "raw": "Unit 4 copy 10 4",
+    "normalized": "unit 4 copy 10-4"
+  },
+  {
+    "raw": "Unit 4 copy 10-40 on the channel",
+    "normalized": "unit 4 copy 10-40 on the channel"
+  },
+  {
+    "raw": "Unit 8 we are code three",
+    "normalized": "unit 8 we are code 3"
+  },
+  {
+    "raw": "Code thirty, officer needs help",
+    "normalized": "code 30 officer needs help"
+  },
+  {
+    "raw": "Unit 12 has ten minutes to clear",
+    "normalized": "unit 12 has ten minutes to clear"
+  },
+  {
+    "raw": "Case number 2110 filed",
+    "normalized": "case number 2110 filed"
+  },
+  {
+    "raw": "Unit 4 ten for copy",
+    "normalized": "unit 4 10-4 copy"
+  },
+  {
+    "raw": "10 for, en route",
+    "normalized": "10-4 en route"
+  },
+  {
+    "raw": "ten-for",
+    "normalized": "10-4"
+  },
+  {
+    "raw": "ten for the parade is at noon",
+    "normalized": "ten for the parade is at noon"
+  },
+  {
+    "raw": "Unit 8 code tree to the scene",
+    "normalized": "unit 8 code 3 to the scene"
+  },
+  {
+    "raw": "code free",
+    "normalized": "code 3"
+  },
+  {
+    "raw": "unit 3 code for at the store",
+    "normalized": "unit 3 code 4 at the store"
+  },
+  {
+    "raw": "code for the new door",
+    "normalized": "code for the new door"
+  },
+  {
+    "raw": "shots fire at Broadway and 5th",
+    "normalized": "shots fired at broadway and 5th"
+  },
+  {
+    "raw": "shot fired near oak",
+    "normalized": "shots fired near oak"
+  },
+  {
+    "raw": "Shots fired at 5th and Main",
+    "normalized": "shots fired at 5th and main"
+  },
+  {
+    "raw": "Unit 2 in route to hospital",
+    "normalized": "unit 2 en route to hospital"
+  },
+  {
+    "raw": "Dispatch unit 9 ten for",
+    "normalized": "dispatch unit 9 10-4"
+  },
+  {
+    "raw": "ten for",
+    "normalized": "10-4"
+  },
+  {
+    "raw": "Unit 12 says ten for.",
+    "normalized": "unit 12 says 10-4"
+  },
+  {
+    "raw": "Unit 22 conducting traffic stop on northbound I-95",
+    "normalized": "unit 22 conducting traffic stop on northbound i-95"
+  },
+  {
+    "raw": "Unit 15 code 4 at the scene",
+    "normalized": "unit 15 code 4 at the scene"
+  }
+]
