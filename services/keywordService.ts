@@ -1,5 +1,4 @@
 import { AlertSeverity, CrimeAlert } from '../constants/types';
-import 'react-native-get-random-values';
 
 export const KEYWORDS: Record<AlertSeverity, string[]> = {
   HIGH: [
@@ -48,6 +47,24 @@ export const DEMO_PHRASES = [
   'Unit 54, carjacking just occurred at the parking structure on 2nd Street',
 ];
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Whole-word matching so that e.g. "disarmed" does not match "armed"
+// and "10-40" does not match "10-4".
+const KEYWORD_PATTERNS: Record<AlertSeverity, { keyword: string; pattern: RegExp }[]> = {
+  HIGH: [],
+  MEDIUM: [],
+  LOW: [],
+};
+(['HIGH', 'MEDIUM', 'LOW'] as AlertSeverity[]).forEach((severity) => {
+  KEYWORD_PATTERNS[severity] = KEYWORDS[severity].map((keyword) => ({
+    keyword,
+    pattern: new RegExp(`(^|[^a-z0-9])${escapeRegExp(keyword)}($|[^a-z0-9])`, 'i'),
+  }));
+});
+
 export function checkTranscriptForAlerts(
   transcript: string,
   feedName: string,
@@ -55,11 +72,10 @@ export function checkTranscriptForAlerts(
   latitude: number,
   longitude: number
 ): CrimeAlert | null {
-  const lower = transcript.toLowerCase();
-
+  // Severity tiers are checked HIGH -> MEDIUM -> LOW; first match wins.
   for (const severity of ['HIGH', 'MEDIUM', 'LOW'] as AlertSeverity[]) {
-    for (const keyword of KEYWORDS[severity]) {
-      if (lower.includes(keyword)) {
+    for (const { keyword, pattern } of KEYWORD_PATTERNS[severity]) {
+      if (pattern.test(transcript)) {
         return {
           id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           timestamp: new Date().toISOString(),
