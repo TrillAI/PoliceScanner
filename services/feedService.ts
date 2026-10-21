@@ -144,9 +144,24 @@ export const ALL_FEEDS: Feed[] = [
     description: 'Atlanta Police Department primary dispatch',
     tags: ['police', 'dispatch'],
   },
+  {
+    // Transcribed by the radio transcriber under this id (see transcriber/feeds.json).
+    // The stream URL is a signed, expiring link and is kept on the server, not in the app.
+    id: 'broadcastify-9119',
+    name: 'Cleveland, TN - Broadcastify 9119',
+    agency: 'Cleveland, TN',
+    city: 'Cleveland',
+    state: 'TN',
+    country: 'US',
+    latitude: 35.1595,
+    longitude: -84.8766,
+    url: '',
+    description: 'Broadcastify feed 9119 (Cleveland, TN)',
+    tags: ['police', 'dispatch'],
+  },
 ];
 
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;

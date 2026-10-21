@@ -35,6 +35,12 @@ npm run reset-project
 npm run lint
 ```
 
+## Live Transcription
+
+The app runs in demo mode unless `EXPO_PUBLIC_TRANSCRIBER_URL` points at a running
+transcriber service. The service, its configuration, and accuracy measurement are
+documented in [transcriber/README.md](./transcriber/README.md).
+
 ## Main Dependencies
 
 - React Native: 0.79.4

@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+models/
+# Stream URLs for licensed feeds: keep out of version control.
+feeds.json
+.env

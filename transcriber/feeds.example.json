@@ -1,0 +1,6 @@
+{
+  "feeds": [
+    { "id": "sfpd", "url": "https://REPLACE-WITH-LICENSED-STREAM.example/sfpd" },
+    { "id": "lapd", "url": "https://REPLACE-WITH-LICENSED-STREAM.example/lapd" }
+  ]
+}
